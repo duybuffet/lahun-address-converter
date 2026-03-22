@@ -1,0 +1,103 @@
+{
+  "_meta": {
+    "note": "File này là SAMPLE với một số tỉnh/phường để demo. Chạy scripts/generate-mapping.js để tạo full dataset toàn quốc.",
+    "source": "Nghị quyết 202/2025/QH15 · 76/2025/UBTVQH15 · 1669/NQ-UBTVQH15",
+    "generated": "2025-07-01",
+    "total_entries": "sample only"
+  },
+
+  "tran nguyen han|hai phong": {
+    "ward_new": "Trần Nguyên Hãn",
+    "type_new": "Phường",
+    "province_new": "Thành phố Hải Phòng",
+    "sources": [
+      { "ward": "Trần Nguyên Hãn", "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
+      { "ward": "Hồ Nam",          "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
+      { "ward": "Dư Hàng",         "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" }
+    ]
+  },
+
+  "an bien|hai phong": {
+    "ward_new": "An Biên",
+    "type_new": "Phường",
+    "province_new": "Thành phố Hải Phòng",
+    "sources": [
+      { "ward": "An Biên",   "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
+      { "ward": "An Dương",  "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
+      { "ward": "Lam Sơn",   "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
+      { "ward": "Cát Dài",   "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
+      { "ward": "Vĩnh Niệm", "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" }
+    ]
+  },
+
+  "le chan|hai phong": {
+    "ward_new": "Lê Chân",
+    "type_new": "Phường",
+    "province_new": "Thành phố Hải Phòng",
+    "sources": [
+      { "ward": "Hàng Kênh",   "ward_type": "Phường", "district": "Quận Lê Chân",  "province": "Thành phố Hải Phòng" },
+      { "ward": "Dư Hàng Kênh","ward_type": "Phường", "district": "Quận Lê Chân",  "province": "Thành phố Hải Phòng" },
+      { "ward": "Kênh Dương",  "ward_type": "Phường", "district": "Quận Lê Chân",  "province": "Thành phố Hải Phòng" },
+      { "ward": "Cầu Đất",     "ward_type": "Phường", "district": "Quận Ngô Quyền","province": "Thành phố Hải Phòng" },
+      { "ward": "Lạch Tray",   "ward_type": "Phường", "district": "Quận Ngô Quyền","province": "Thành phố Hải Phòng" }
+    ]
+  },
+
+  "ba dinh|ha noi": {
+    "ward_new": "Ba Đình",
+    "type_new": "Phường",
+    "province_new": "Thành phố Hà Nội",
+    "sources": [
+      { "ward": "Phúc Xá",          "ward_type": "Phường", "district": "Quận Ba Đình", "province": "Thành phố Hà Nội" },
+      { "ward": "Trúc Bạch",        "ward_type": "Phường", "district": "Quận Ba Đình", "province": "Thành phố Hà Nội" },
+      { "ward": "Nguyễn Trung Trực","ward_type": "Phường", "district": "Quận Ba Đình", "province": "Thành phố Hà Nội" },
+      { "ward": "Quán Thánh",       "ward_type": "Phường", "district": "Quận Ba Đình", "province": "Thành phố Hà Nội" }
+    ]
+  },
+
+  "hoan kiem|ha noi": {
+    "ward_new": "Hoàn Kiếm",
+    "type_new": "Phường",
+    "province_new": "Thành phố Hà Nội",
+    "sources": [
+      { "ward": "Hàng Bạc",  "ward_type": "Phường", "district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" },
+      { "ward": "Hàng Buồm", "ward_type": "Phường", "district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" },
+      { "ward": "Hàng Đào",  "ward_type": "Phường", "district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" },
+      { "ward": "Hàng Gai",  "ward_type": "Phường", "district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" },
+      { "ward": "Hồ Hoàn Kiếm","ward_type": "Phường","district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" }
+    ]
+  },
+
+  "ben nghe|ho chi minh": {
+    "ward_new": "Bến Nghé",
+    "type_new": "Phường",
+    "province_new": "Thành phố Hồ Chí Minh",
+    "sources": [
+      { "ward": "Bến Nghé",  "ward_type": "Phường", "district": "Quận 1", "province": "Thành phố Hồ Chí Minh" },
+      { "ward": "Bến Thành", "ward_type": "Phường", "district": "Quận 1", "province": "Thành phố Hồ Chí Minh" },
+      { "ward": "Nguyễn Thái Bình","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh" }
+    ]
+  },
+
+  "pham ngu lao|ho chi minh": {
+    "ward_new": "Phạm Ngũ Lão",
+    "type_new": "Phường",
+    "province_new": "Thành phố Hồ Chí Minh",
+    "sources": [
+      { "ward": "Phạm Ngũ Lão","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh" },
+      { "ward": "Cô Giang",    "ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh" },
+      { "ward": "Cầu Kho",     "ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh" }
+    ]
+  },
+
+  "da nang|da nang": {
+    "ward_new": "Đà Nẵng",
+    "type_new": "Phường",
+    "province_new": "Thành phố Đà Nẵng",
+    "sources": [
+      { "ward": "Hải Châu 1", "ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng" },
+      { "ward": "Hải Châu 2", "ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng" },
+      { "ward": "Thạch Thang","ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng" }
+    ]
+  }
+}

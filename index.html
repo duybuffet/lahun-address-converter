@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Convert Địa Chỉ VN 2025</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0f1117;
+      --bg2:       #161b27;
+      --bg3:       #1e2535;
+      --border:    #2a3347;
+      --accent:    #3b82f6;
+      --accent2:   #60a5fa;
+      --success:   #22c55e;
+      --warn:      #f59e0b;
+      --error:     #ef4444;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --tag:       #1e3a5f;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'IBM Plex Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg2);
+    }
+    .topbar-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600; font-size: 15px;
+    }
+    .topbar-logo .dot {
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+    .tag {
+      font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+      background: var(--tag); color: var(--accent2);
+      border: 1px solid #2d4f7c;
+      padding: 2px 8px; border-radius: 4px;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    .hero { margin-bottom: 40px; }
+    .hero h1 {
+      font-size: 26px; font-weight: 600;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+    .hero h1 span { color: var(--accent2); }
+    .hero p { color: var(--muted); font-size: 14px; }
+
+    /* ── STEPS ── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      margin-bottom: 32px;
+    }
+    .step {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+      transition: all 0.2s;
+    }
+    .step:first-child { border-radius: 8px 0 0 8px; }
+    .step:last-child  { border-radius: 0 8px 8px 0; }
+    .step.active {
+      background: var(--bg3);
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .step.done { border-color: var(--success); color: var(--success); }
+    .step-num {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--bg3);
+      border: 1px solid var(--muted);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+      flex-shrink: 0;
+    }
+    .step.active .step-num { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .step.done .step-num { background: var(--success); border-color: var(--success); color: #fff; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .card-title .line {
+      flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* ── DROP ZONE ── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 56px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.05);
+    }
+    .drop-icon {
+      font-size: 40px; margin-bottom: 16px;
+      display: block;
+    }
+    .drop-zone h3 { font-size: 15px; margin-bottom: 6px; }
+    .drop-zone p  { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 9px 18px; border-radius: 7px;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer; border: none;
+      font-family: 'IBM Plex Sans', sans-serif;
+      transition: all 0.15s;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent2); }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent2); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { filter: brightness(1.1); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+    /* ── FILE INFO BAR ── */
+    .file-info {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+    }
+    .file-info-left { display: flex; align-items: center; gap: 12px; }
+    .file-info .fname { font-weight: 500; font-size: 14px; }
+    .file-info .fmeta { font-size: 12px; color: var(--muted); }
+
+    /* ── TABLE ── */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th {
+      background: var(--bg3);
+      padding: 9px 12px; text-align: left;
+      font-weight: 600; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; letter-spacing: 0.05em;
+    }
+    th.col-new { color: var(--warn); }
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid var(--bg3);
+      max-width: 220px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    td.cell-success { color: var(--success); }
+    td.cell-warn    { color: var(--warn); }
+    td.cell-error   { color: var(--error); font-size: 11px; }
+    td.cell-new     { color: var(--accent2); font-weight: 500; }
+
+    /* ── ALERT ── */
+    .alert {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px; border-radius: 7px;
+      font-size: 13px; margin-bottom: 16px;
+      border: 1px solid;
+    }
+    .alert-info    { background: #1e3a5f22; border-color: #2d4f7c; color: #93c5fd; }
+    .alert-success { background: #14532d22; border-color: #166534; color: #86efac; }
+    .alert-warn    { background: #78350f22; border-color: #92400e; color: #fcd34d; }
+    .alert-error   { background: #7f1d1d22; border-color: #991b1b; color: #fca5a5; }
+
+    /* ── PROGRESS ── */
+    .progress-wrap { margin: 16px 0; }
+    .progress-bar {
+      height: 4px; background: var(--bg3);
+      border-radius: 99px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: var(--accent);
+      border-radius: 99px;
+      transition: width 0.2s ease;
+    }
+    .progress-label {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ── STATS ── */
+    .stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin-bottom: 20px;
+    }
+    .stat {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+    }
+    .stat .num {
+      font-size: 30px; font-weight: 700;
+      font-family: 'IBM Plex Mono', monospace;
+      line-height: 1; margin-bottom: 4px;
+    }
+    .stat .lbl { font-size: 12px; color: var(--muted); }
+
+    /* ── MAPPING STATUS ── */
+    .mapping-status {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px;
+    }
+    .mapping-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0;
+    }
+    .mapping-dot.ok  { background: var(--success); }
+    .mapping-dot.err { background: var(--error); }
+    .mapping-dot.loading { background: var(--warn); animation: pulse 1s infinite; }
+
+    /* ── ACTIONS ROW ── */
+    .actions-row {
+      display: flex; gap: 10px; align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* ── UTILS ── */
+    .hidden { display: none !important; }
+    .mono { font-family: 'IBM Plex Mono', monospace; }
+
+    @media (max-width: 600px) {
+      .steps { grid-template-columns: 1fr 1fr; }
+      .stats  { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <div class="dot"></div>
+    addr-converter.vn
+  </div>
+  <div class="tag">Nghị quyết 202/2025/QH15 · 76/2025/UBTVQH15</div>
+</div>
+
+<div class="main">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Chuyển đổi địa chỉ <span>mới → cũ</span><br>sau sáp nhập hành chính 2025</h1>
+    <p>Upload file Excel có cột dealer / address / province → tự động thêm cột <span class="mono" style="color:var(--accent2)">old_address</span> và export lại</p>
+  </div>
+
+  <!-- STEPS -->
+  <div class="steps" id="stepsBar">
+    <div class="step active" id="s1"><div class="step-num">1</div>Upload Excel</div>
+    <div class="step"        id="s2"><div class="step-num">2</div>Kiểm tra dữ liệu</div>
+    <div class="step"        id="s3"><div class="step-num">3</div>Convert</div>
+    <div class="step"        id="s4"><div class="step-num">4</div>Export</div>
+  </div>
+
+  <!-- ── CARD 1: UPLOAD ── -->
+  <div class="card" id="card1">
+    <div class="card-title">📂 Upload file <div class="line"></div></div>
+    <div class="alert alert-info">
+      ℹ️ File Excel cần có các cột: <strong>dealer</strong>, <strong>address</strong>, <strong>province</strong>.<br>
+      Tool đọc dòng đầu (header) để tự nhận diện tên cột (không phân biệt hoa thường).
+    </div>
+    <div class="drop-zone" id="dropZone">
+      <span class="drop-icon">📊</span>
+      <h3>Kéo thả file Excel vào đây</h3>
+      <p>Hoặc click để chọn file từ máy tính</p>
+      <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+        Chọn file .xlsx / .xls
+      </button>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" style="display:none">
+    </div>
+  </div>
+
+  <!-- ── CARD 2: PREVIEW ── -->
+  <div class="card hidden" id="card2">
+    <div class="card-title">👀 Kiểm tra dữ liệu <div class="line"></div></div>
+    <div class="file-info" id="fileInfoBar">
+      <div class="file-info-left">
+        <span>📄</span>
+        <div>
+          <div class="fname" id="fileName">—</div>
+          <div class="fmeta" id="fileMeta">—</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" onclick="resetTool()">✕ Chọn file khác</button>
+    </div>
+
+    <div id="colCheck" class="alert alert-info" style="margin-bottom:16px;"></div>
+
+    <div class="table-wrap">
+      <table id="previewTable"></table>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px;">* Hiển thị 5 dòng đầu</p>
+  </div>
+
+  <!-- ── CARD 3: MAPPING + CONVERT ── -->
+  <div class="card hidden" id="card3">
+    <div class="card-title">⚙️ Chuyển đổi địa chỉ <div class="line"></div></div>
+
+    <!-- Mapping status -->
+    <div style="margin-bottom:16px;">
+      <div class="mapping-status" id="mappingStatus">
+        <div class="mapping-dot loading" id="mappingDot"></div>
+        <span id="mappingMsg">Đang tải dữ liệu mapping...</span>
+      </div>
+    </div>
+
+    <div class="actions-row" style="margin-bottom:16px;">
+      <button class="btn btn-primary" id="convertBtn" onclick="startConvert()" disabled>
+        ▶ Bắt đầu Convert
+      </button>
+      <span style="font-size:13px;color:var(--muted);" id="convertMeta"></span>
+    </div>
+
+    <div class="progress-wrap hidden" id="progressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="progress-label">
+        <span id="progressLeft">Đang xử lý...</span>
+        <span id="progressRight">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CARD 4: RESULT ── -->
+  <div class="card hidden" id="card4">
+    <div class="card-title">✅ Kết quả <div class="line"></div></div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="num" id="statTotal" style="color:var(--text)">0</div>
+        <div class="lbl">Tổng dòng</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="statOk" style="color:var(--success)">0</div>
+        <div class="lbl">Convert thành công</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="statFail" style="color:var(--error)">0</div>
+        <div class="lbl">Không tìm được</div>
+      </div>
+    </div>
+
+    <div id="failAlert" class="alert alert-warn hidden" style="margin-bottom:16px;"></div>
+
+    <div class="table-wrap" style="margin-bottom:16px;">
+      <table id="resultTable"></table>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn btn-success" onclick="exportExcel()">⬇ Tải xuống Excel</button>
+      <button class="btn btn-ghost" onclick="resetTool()">🔄 Convert file khác</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ================================================================
+// STATE
+// ================================================================
+let sheetRows   = [];   // raw rows from Excel [{dealer, address, province, ...}]
+let mapping     = null; // {normalizedKey: {sources:[...], ...}}
+let processed   = [];   // final rows with old_address
+let currentFile = null;
+
+// Column name aliases (flexible detection)
+const COL_ALIASES = {
+  dealer:   ['dealer', 'Dealer', 'DEALER', 'tên', 'cửa hàng', 'store'],
+  address:  ['address', 'Address', 'ADDRESS', 'địa chỉ', 'diachi', 'addr'],
+  province: ['province', 'Province', 'PROVINCE', 'tỉnh', 'thành phố', 'tinh', 'city'],
+};
+
+// ================================================================
+// UTILITY: NORMALIZE VIETNAMESE TEXT
+// ================================================================
+function normalize(str) {
+  if (!str) return '';
+  return String(str)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeProvince(str) {
+  if (!str) return '';
+  const prefixes = /^(tinh|thanh pho|tp\.?|t\.p\.?|city)\s+/i;
+  return normalize(str).replace(prefixes, '').trim();
+}
+
+// ================================================================
+// UTILITY: DETECT COLUMN NAMES
+// ================================================================
+function detectCols(row) {
+  const keys = Object.keys(row);
+  const found = {};
+  for (const [target, aliases] of Object.entries(COL_ALIASES)) {
+    for (const k of keys) {
+      if (aliases.some(a => a.toLowerCase() === k.toLowerCase())) {
+        found[target] = k; break;
+      }
+    }
+  }
+  return found;
+}
+
+// ================================================================
+// UTILITY: PARSE WARD FROM FREE-TEXT ADDRESS
+// ================================================================
+function parseWard(address) {
+  if (!address) return null;
+  const str = String(address);
+
+  const patterns = [
+    { re: /\bph(?:ường|u\w*ng)\s+([^,\n]+?)(?=\s*,|\s+qu[ậa]n|\s+huy[ệe]n|\s+th[àa]nh\s*ph[ốo]|\s+t[ỉi]nh|\s+vi[ệe]t\s*nam|$)/i, type: 'Phường' },
+    { re: /\bth[ịi]\s+tr[ấa]n\s+([^,\n]+?)(?=\s*,|\s+qu[ậa]n|\s+huy[ệe]n|\s+th[àa]nh\s*ph[ốo]|\s+t[ỉi]nh|$)/i,               type: 'Thị trấn' },
+    { re: /\bx[ãa]\s+([^,\n]+?)(?=\s*,|\s+qu[ậa]n|\s+huy[ệe]n|\s+th[àa]nh\s*ph[ốo]|\s+t[ỉi]nh|$)/i,                           type: 'Xã' },
+  ];
+
+  for (const { re, type } of patterns) {
+    const m = str.match(re);
+    if (m) {
+      let name = m[1]
+        .replace(/,.*$/, '')
+        .replace(/\s+(quận|huyện|thành\s*phố|tỉnh|việt\s*nam)\b.*/i, '')
+        .trim();
+      if (name && name.length > 1 && name.length < 60) {
+        return { name, type };
+      }
+    }
+  }
+  return null;
+}
+
+// ================================================================
+// UTILITY: EXTRACT STREET PART (before ward)
+// ================================================================
+function extractStreet(address, ward) {
+  if (!ward) return String(address || '').trim();
+  const escapedName = ward.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(
+    `\\b(?:phường|thị trấn|xã)\\s+${escapedName}`,
+    'i'
+  );
+  const m = String(address).match(re);
+  if (!m) return String(address).trim();
+  const idx = String(address).indexOf(m[0]);
+  if (idx <= 0) return '';
+  return String(address).slice(0, idx).replace(/[,\s]+$/, '').trim();
+}
+
+// ================================================================
+// CORE: LOOKUP OLD ADDRESS
+// ================================================================
+function lookupOld(address, province, cols) {
+  if (!mapping) return null;
+
+  const ward = parseWard(address);
+  if (!ward) return { error: 'Không nhận diện được phường/xã' };
+
+  const wardNorm = normalize(ward.name);
+  const provNorm = normalizeProvince(province);
+
+  // Try: wardNorm|provNorm
+  let entry = mapping[`${wardNorm}|${provNorm}`];
+
+  // Fallback: wardNorm only (if province ambiguous)
+  if (!entry) entry = mapping[wardNorm];
+
+  if (!entry) return { error: `Không tìm thấy: "${ward.type} ${ward.name}" / "${province}"` };
+
+  const primary = entry.sources[0];
+  const street  = extractStreet(address, ward);
+
+  const wardPart     = `${primary.ward_type} ${primary.ward}`;
+  const districtPart = primary.district ? `, ${primary.district}` : '';
+  const provPart     = primary.province;
+
+  const oldAddress = street
+    ? `${street}, ${wardPart}${districtPart}, ${provPart}`
+    : `${wardPart}${districtPart}, ${provPart}`;
+
+  return {
+    old_address: oldAddress,
+    sources: entry.sources.length,
+    ward_old: `${primary.ward_type} ${primary.ward}`,
+    district_old: primary.district || '',
+    province_old: primary.province,
+  };
+}
+
+// ================================================================
+// MAPPING DATA — nhúng trực tiếp, không cần fetch (hoạt động với file://)
+// Khi có full data từ generate-mapping.js, thay thế object MAPPING_DATA bên dưới
+// ================================================================
+const MAPPING_DATA = {"tran nguyen han|hai phong":{"ward_new":"Trần Nguyên Hãn","type_new":"Phường","province_new":"Thành phố Hải Phòng","sources":[{"ward":"Trần Nguyên Hãn","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Hồ Nam","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Dư Hàng","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"}]},"an bien|hai phong":{"ward_new":"An Biên","type_new":"Phường","province_new":"Thành phố Hải Phòng","sources":[{"ward":"An Biên","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"An Dương","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Lam Sơn","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Cát Dài","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Vĩnh Niệm","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"}]},"le chan|hai phong":{"ward_new":"Lê Chân","type_new":"Phường","province_new":"Thành phố Hải Phòng","sources":[{"ward":"Hàng Kênh","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Dư Hàng Kênh","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Kênh Dương","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Cầu Đất","ward_type":"Phường","district":"Quận Ngô Quyền","province":"Thành phố Hải Phòng"},{"ward":"Lạch Tray","ward_type":"Phường","district":"Quận Ngô Quyền","province":"Thành phố Hải Phòng"}]},"ba dinh|ha noi":{"ward_new":"Ba Đình","type_new":"Phường","province_new":"Thành phố Hà Nội","sources":[{"ward":"Phúc Xá","ward_type":"Phường","district":"Quận Ba Đình","province":"Thành phố Hà Nội"},{"ward":"Trúc Bạch","ward_type":"Phường","district":"Quận Ba Đình","province":"Thành phố Hà Nội"},{"ward":"Nguyễn Trung Trực","ward_type":"Phường","district":"Quận Ba Đình","province":"Thành phố Hà Nội"},{"ward":"Quán Thánh","ward_type":"Phường","district":"Quận Ba Đình","province":"Thành phố Hà Nội"}]},"hoan kiem|ha noi":{"ward_new":"Hoàn Kiếm","type_new":"Phường","province_new":"Thành phố Hà Nội","sources":[{"ward":"Hàng Bạc","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"},{"ward":"Hàng Buồm","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"},{"ward":"Hàng Đào","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"},{"ward":"Hàng Gai","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"},{"ward":"Hồ Hoàn Kiếm","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"}]},"ben nghe|ho chi minh":{"ward_new":"Bến Nghé","type_new":"Phường","province_new":"Thành phố Hồ Chí Minh","sources":[{"ward":"Bến Nghé","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"},{"ward":"Bến Thành","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"},{"ward":"Nguyễn Thái Bình","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"}]},"pham ngu lao|ho chi minh":{"ward_new":"Phạm Ngũ Lão","type_new":"Phường","province_new":"Thành phố Hồ Chí Minh","sources":[{"ward":"Phạm Ngũ Lão","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"},{"ward":"Cô Giang","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"},{"ward":"Cầu Kho","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"}]},"da nang|da nang":{"ward_new":"Đà Nẵng","type_new":"Phường","province_new":"Thành phố Đà Nẵng","sources":[{"ward":"Hải Châu 1","ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng"},{"ward":"Hải Châu 2","ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng"},{"ward":"Thạch Thang","ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng"}]}};
+
+async function loadMapping() {
+  setMappingStatus('loading', 'Đang khởi tạo dữ liệu...');
+
+  // 1) Dùng data nhúng sẵn trước
+  mapping = { ...MAPPING_DATA };
+
+  // 2) Thử load thêm từ mapping.json (chỉ hoạt động khi chạy qua HTTP server / GitHub Pages)
+  try {
+    const res = await fetch('./data/mapping.json');
+    if (res.ok) {
+      const ext = await res.json();
+      // Merge — external file thắng nếu trùng key
+      mapping = { ...mapping, ...ext };
+    }
+  } catch (_) {
+    // Không có server / không có file → dùng data nhúng, không báo lỗi
+  }
+
+  const count = Object.keys(mapping).filter(k => k !== '_meta').length;
+  const isSample = count < 50;
+  setMappingStatus('ok',
+    isSample
+      ? `⚠️ Đang dùng data SAMPLE (${count} phường/xã). Chạy generate-mapping.js để có full data toàn quốc.`
+      : `✅ Đã tải ${count.toLocaleString('vi')} đơn vị hành chính`
+  );
+  document.getElementById('convertBtn').disabled = false;
+}
+
+function setMappingStatus(state, msg) {
+  const dot = document.getElementById('mappingDot');
+  dot.className = 'mapping-dot ' + (state === 'ok' ? 'ok' : state === 'err' ? 'err' : 'loading');
+  document.getElementById('mappingMsg').textContent = msg;
+}
+
+// ================================================================
+// FILE HANDLING
+// ================================================================
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('click', () => document.getElementById('fileInput').click());
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+});
+
+function handleFile(file) {
+  currentFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(ev.target.result, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      sheetRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+      if (sheetRows.length === 0) {
+        alert('File không có dữ liệu!'); return;
+      }
+
+      showPreview(file);
+      setStep(2);
+      show('card2');
+      show('card3');
+      loadMapping();
+    } catch (e) {
+      alert('Không đọc được file: ' + e.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function showPreview(file) {
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileMeta').textContent =
+    `${sheetRows.length.toLocaleString('vi')} dòng · ${(file.size / 1024).toFixed(1)} KB`;
+
+  const detectedCols = detectCols(sheetRows[0]);
+  const allOk = detectedCols.dealer && detectedCols.address && detectedCols.province;
+
+  const colCheckEl = document.getElementById('colCheck');
+  if (allOk) {
+    colCheckEl.className = 'alert alert-success';
+    colCheckEl.innerHTML =
+      `✅ Nhận diện cột: <strong>dealer</strong> = "${detectedCols.dealer}" · <strong>address</strong> = "${detectedCols.address}" · <strong>province</strong> = "${detectedCols.province}"`;
+  } else {
+    colCheckEl.className = 'alert alert-warn';
+    const missing = ['dealer','address','province'].filter(k => !detectedCols[k]);
+    colCheckEl.innerHTML =
+      `⚠️ Không tìm thấy cột: <strong>${missing.join(', ')}</strong>. Tool sẽ dùng cột đầu tiên làm fallback.`;
+  }
+
+  // Preview table (5 rows)
+  const preview = sheetRows.slice(0, 5);
+  const cols = Object.keys(preview[0] || {});
+  const table = document.getElementById('previewTable');
+  table.innerHTML = `
+    <thead>
+      <tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>
+    </thead>
+    <tbody>
+      ${preview.map(row => `
+        <tr>${cols.map(c => `<td title="${escHtml(String(row[c]))}">${escHtml(String(row[c]).slice(0, 60))}</td>`).join('')}</tr>
+      `).join('')}
+    </tbody>
+  `;
+}
+
+// ================================================================
+// CONVERT
+// ================================================================
+async function startConvert() {
+  if (!mapping) return;
+
+  document.getElementById('convertBtn').disabled = true;
+  show('progressWrap');
+  setStep(3);
+  processed = [];
+
+  const detectedCols = detectCols(sheetRows[0]);
+  const addrKey = detectedCols.address  || Object.keys(sheetRows[0])[1];
+  const provKey = detectedCols.province || Object.keys(sheetRows[0])[2];
+
+  let ok = 0, fail = 0;
+  const total = sheetRows.length;
+
+  for (let i = 0; i < total; i++) {
+    const row = sheetRows[i];
+    const addr = String(row[addrKey] || '');
+    const prov = String(row[provKey] || '');
+
+    const result = lookupOld(addr, prov);
+
+    let oldAddress = '', status = '';
+    if (!result) {
+      oldAddress = ''; status = '❌ mapping chưa tải';
+      fail++;
+    } else if (result.error) {
+      oldAddress = ''; status = `❌ ${result.error}`;
+      fail++;
+    } else {
+      oldAddress = result.old_address;
+      status = result.sources > 1 ? `⚠️ ${result.sources} nguồn gộp` : '✅';
+      ok++;
+    }
+
+    processed.push({ ...row, old_address: oldAddress, _status: status });
+
+    // Update progress every 50 rows
+    if (i % 50 === 0 || i === total - 1) {
+      const pct = Math.round(((i + 1) / total) * 100);
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressLeft').textContent = `${(i + 1).toLocaleString('vi')} / ${total.toLocaleString('vi')} dòng`;
+      document.getElementById('progressRight').textContent = pct + '%';
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  showResult(total, ok, fail);
+}
+
+function showResult(total, ok, fail) {
+  document.getElementById('statTotal').textContent = total.toLocaleString('vi');
+  document.getElementById('statOk').textContent   = ok.toLocaleString('vi');
+  document.getElementById('statFail').textContent = fail.toLocaleString('vi');
+
+  if (fail > 0) {
+    const fa = document.getElementById('failAlert');
+    fa.classList.remove('hidden');
+    fa.textContent = `⚠️ ${fail} dòng không convert được — thường do ward name không khớp với mapping.json hoặc địa chỉ không có phường/xã rõ ràng.`;
+  }
+
+  // Result table (10 rows preview)
+  const preview = processed.slice(0, 10);
+  const baseCols = Object.keys(sheetRows[0] || {});
+  const allCols  = [...baseCols, 'old_address', '_status'];
+
+  const table = document.getElementById('resultTable');
+  table.innerHTML = `
+    <thead>
+      <tr>
+        ${baseCols.map(c => `<th>${escHtml(c)}</th>`).join('')}
+        <th class="col-new">old_address</th>
+        <th class="col-new">status</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${preview.map(row => {
+        const statusClass = row._status.startsWith('✅') ? 'cell-success'
+                          : row._status.startsWith('⚠️') ? 'cell-warn'
+                          : 'cell-error';
+        return `<tr>
+          ${baseCols.map(c => `<td title="${escHtml(String(row[c]))}">${escHtml(String(row[c]).slice(0,50))}</td>`).join('')}
+          <td class="cell-new" title="${escHtml(row.old_address)}">${escHtml((row.old_address||'').slice(0,60))}</td>
+          <td class="${statusClass}">${escHtml(row._status)}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  `;
+
+  show('card4');
+  setStep(4);
+  document.getElementById('card4').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ================================================================
+// EXPORT EXCEL
+// ================================================================
+function exportExcel() {
+  // Strip internal _status → rename to convert_status for export
+  const exportRows = processed.map(r => {
+    const { _status, ...rest } = r;
+    return { ...rest, convert_status: _status };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(exportRows);
+
+  // Auto-width columns
+  const colWidths = Object.keys(exportRows[0] || {}).map(k => ({
+    wch: Math.max(k.length, ...exportRows.slice(0,100).map(r => String(r[k]||'').length))
+  }));
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Converted');
+
+  const filename = (currentFile?.name || 'output').replace(/\.(xlsx?|xls)$/i, '') + '_converted.xlsx';
+  XLSX.writeFile(wb, filename);
+}
+
+// ================================================================
+// HELPERS
+// ================================================================
+function show(id)   { document.getElementById(id).classList.remove('hidden'); }
+function hide(id)   { document.getElementById(id).classList.add('hidden'); }
+
+function setStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('s' + i);
+    el.className = 'step' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function resetTool() {
+  sheetRows = []; mapping = null; processed = []; currentFile = null;
+  document.getElementById('fileInput').value = '';
+  ['card2','card3','card4','progressWrap','failAlert'].forEach(hide);
+  setStep(1);
+  document.getElementById('convertBtn').disabled = true;
+  document.getElementById('progressFill').style.width = '0%';
+}
+</script>
+</body>
+</html>
