@@ -1,14 +1,15 @@
 /**
- * generate-mapping.js  v4
- * 
- * API structure confirmed:
- *   merge-history/ward/{old_code} → {
- *     old_ward: { code, name, type, ... }
- *     new_ward: { code:"00097", name:"Hồng Hà", type:"Phường", province_code:"01" }
- *   }
- * 
- * province_code "01" → cần map sang tên tỉnh mới
- * Lấy province list từ tinhthanhpho.com /api/v1/provinces
+ * generate-mapping.js  v6
+ *
+ * Generates province-level mapping: old province (63) → new province (34)
+ *
+ * Strategy:
+ *   1. Load old provinces from provinces.open-api.vn
+ *   2. Load new provinces from tinhthanhpho.com
+ *   3. For each old province, pick a sample ward and call merge-history
+ *      to find which new province it maps to
+ *
+ * Output: { "ha noi": { "province_old": "Thành phố Hà Nội", "province_new": "Hà Nội" }, ... }
  */
 
 const https = require('https');
@@ -17,7 +18,7 @@ const path  = require('path');
 
 const API_KEY  = process.env.API_KEY || '';
 const OUT_FILE = path.join(__dirname, '..', 'data', 'mapping.json');
-const DELAY_MS = 80;
+const DELAY_MS = 100;
 
 if (!API_KEY) {
   console.error('❌  Cần: API_KEY=your_key node scripts/generate-mapping.js');
@@ -54,19 +55,11 @@ function norm(s) {
 }
 const normProv = s => norm(s || '').replace(/^(tinh|thanh pho|tp\.?)\s+/, '').trim();
 
-function guessType(name) {
-  const n = norm(name || '');
-  if (/^phuong\b/.test(n)) return 'Phường';
-  if (/^thi tran\b/.test(n)) return 'Thị trấn';
-  return 'Xã';
-}
+// ── STEP 1: Load new province code → name map ────────────────────
 
-// ── STEP 1: Load province code → name map from tinhthanhpho ───────
-
-async function loadProvinceCodeMap() {
-  console.log('📡 Tải danh sách tỉnh/thành mới (34 tỉnh)...');
-  // Fetch all pages
-  const codeMap = {}; // "01" → "Thành phố Hà Nội"
+async function loadNewProvinceCodeMap() {
+  console.log('📡 Tải danh sách tỉnh/thành mới từ tinhthanhpho.com...');
+  const codeMap = {}; // "01" → "Hà Nội"
   let page = 1;
   while (true) {
     const res = await api(`/api/v1/provinces?limit=100&page=${page}`);
@@ -79,139 +72,95 @@ async function loadProvinceCodeMap() {
     page++;
     await sleep(200);
   }
-  const count = Object.keys(codeMap).length;
-  console.log(`   ✅ ${count} tỉnh/thành: ${Object.values(codeMap).slice(0,5).join(', ')}...\n`);
+  console.log(`   ✅ ${Object.keys(codeMap).length} tỉnh/thành\n`);
   return codeMap;
 }
 
-// ── STEP 2: Load all old wards from provinces.open-api.vn ─────────
+// ── STEP 2: Load old provinces + sample ward codes ────────────────
 
-async function loadOldWards() {
-  console.log('📡 Tải toàn bộ phường/xã CŨ từ provinces.open-api.vn...');
+async function loadOldProvinces() {
+  console.log('📡 Tải danh sách tỉnh/thành CŨ từ provinces.open-api.vn...');
   const res = await open('/api/?depth=3');
-  if (!Array.isArray(res.body)) throw new Error('provinces.open-api.vn error: ' + JSON.stringify(res).slice(0,200));
+  if (!Array.isArray(res.body)) throw new Error('provinces.open-api.vn error');
 
-  const wards = [];
+  const provinces = [];
   for (const prov of res.body) {
+    // Collect a few sample ward codes to probe merge-history
+    const sampleWardCodes = [];
     for (const dist of (prov.districts || [])) {
       for (const w of (dist.wards || [])) {
-        wards.push({
-          code:     String(w.code).padStart(5, '0'),
-          name:     w.name,
-          type:     w.ward_type || guessType(w.name),
-          district: dist.name,
-          province: prov.name,
-        });
+        sampleWardCodes.push(String(w.code).padStart(5, '0'));
+        if (sampleWardCodes.length >= 3) break;
       }
+      if (sampleWardCodes.length >= 3) break;
     }
+    provinces.push({
+      name: prov.name,
+      sampleWardCodes,
+    });
   }
-  console.log(`   ✅ ${wards.length.toLocaleString('vi')} phường/xã cũ\n`);
-  return wards;
+  console.log(`   ✅ ${provinces.length} tỉnh/thành cũ\n`);
+  return provinces;
 }
 
-// ── STEP 3: Build mapping ─────────────────────────────────────────
+// ── STEP 3: Build province mapping ────────────────────────────────
 
-async function buildMapping(wards, provCodeMap) {
-  console.log(`⚙️  Building mapping — ${wards.length.toLocaleString()} wards...\n`);
+async function buildMapping(oldProvinces, newProvCodeMap) {
+  console.log(`⚙️  Building province mapping — ${oldProvinces.length} tỉnh...\n`);
 
   const mapping = {};
-  let merged = 0, unchanged = 0, failed = 0;
+  let mapped = 0, unchanged = 0, failed = 0;
 
-  function add(newWardName, newProvName, oldWard) {
-    const key = `${norm(newWardName)}|${normProv(newProvName)}`;
-    if (!mapping[key]) {
-      mapping[key] = {
-        ward_new:     newWardName,
-        type_new:     guessType(newWardName),
-        province_new: newProvName,
-        sources: [],
-      };
-    }
-    const dup = mapping[key].sources.some(
-      s => s.ward === oldWard.name && s.district === (oldWard.district || '')
-    );
-    if (!dup) {
-      mapping[key].sources.push({
-        ward:      oldWard.name,
-        ward_type: oldWard.type || guessType(oldWard.name),
-        district:  oldWard.district || '',
-        province:  oldWard.province || newProvName,
-      });
-    }
-  }
+  for (const prov of oldProvinces) {
+    let newProvName = null;
 
-  for (let i = 0; i < wards.length; i++) {
-    const ward = wards[i];
-
-    // Progress line
-    if (i % 100 === 0 || i === wards.length - 1) {
-      const pct = ((i / wards.length) * 100).toFixed(1);
-      const remaining = wards.length - i;
-      const etaMin = Math.ceil((remaining * DELAY_MS) / 60000);
-      process.stdout.write(
-        `\r   [${i.toLocaleString()}/${wards.length.toLocaleString()}] ${pct}%` +
-        ` | merged:${merged} unchanged:${unchanged} err:${failed} | ETA:${etaMin}m   `
-      );
-    }
-
-    await sleep(DELAY_MS);
-
-    let retries = 3;
-    while (retries-- > 0) {
+    // Try sample ward codes to find new province
+    for (const code of prov.sampleWardCodes) {
+      await sleep(DELAY_MS);
       try {
-        const res = await api(`/api/v1/merge-history/ward/${ward.code}`);
+        const res = await api(`/api/v1/merge-history/ward/${code}`);
+        if (res.status === 429) { await sleep(5000); continue; }
 
-        if (res.status === 429) {
-          await sleep(5000); continue; // rate limit, retry
-        }
-
-        const data    = res.body?.data;
+        const data = res.body?.data;
         const records = Array.isArray(data) ? data : (data ? [data] : []);
 
-        if (records.length === 0) {
-          // Ward unchanged
-          add(ward.name, ward.province, ward);
-          unchanged++;
-          break;
-        }
-
-        for (const rec of records) {
-          // new_ward: { code, name, type, province_code }
-          const nw   = rec.new_ward;
-          const nwName = nw?.name;
-          const nwProvCode = nw?.province_code;
-          const nwProvName = nwProvCode ? (provCodeMap[String(nwProvCode)] || ward.province) : ward.province;
-
-          if (nwName) {
-            add(nwName, nwProvName, ward);
-            merged++;
-          } else {
-            // Fallback: unchanged
-            add(ward.name, ward.province, ward);
-            unchanged++;
+        if (records.length > 0) {
+          const nw = records[0].new_ward;
+          const provCode = nw?.province_code;
+          if (provCode && newProvCodeMap[String(provCode)]) {
+            newProvName = newProvCodeMap[String(provCode)];
+            break;
           }
         }
-        break; // success
+      } catch (_) {}
+    }
 
-      } catch (e) {
-        if (retries === 0) {
-          failed++;
-          add(ward.name, ward.province, ward); // identity fallback
-        } else {
-          await sleep(500);
-        }
-      }
+    const key = normProv(prov.name);
+
+    if (newProvName && normProv(newProvName) !== normProv(prov.name)) {
+      mapping[key] = { province_old: prov.name, province_new: newProvName };
+      mapped++;
+      console.log(`  ✅ ${prov.name} → ${newProvName}`);
+    } else if (newProvName) {
+      mapping[key] = { province_old: prov.name, province_new: newProvName };
+      unchanged++;
+      console.log(`  = ${prov.name} → ${newProvName} (unchanged)`);
+    } else {
+      // Fallback: keep same name
+      mapping[key] = { province_old: prov.name, province_new: prov.name };
+      failed++;
+      console.log(`  ❌ ${prov.name} → không tìm được (giữ nguyên)`);
     }
   }
 
-  console.log(`\n\n   ✅ merged:${merged} | unchanged:${unchanged} | errors:${failed}\n`);
+  console.log(`\n   ✅ mapped:${mapped} | unchanged:${unchanged} | errors:${failed}\n`);
   return mapping;
 }
 
 // ── MAIN ─────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('🗺️  generate-mapping.js v4\n' + '─'.repeat(50) + '\n');
+  console.log('🗺️  generate-mapping.js v6 (province: old → new)\n' + '─'.repeat(50) + '\n');
   fs.mkdirSync(path.dirname(OUT_FILE), { recursive: true });
 
   // Quick sanity check
@@ -220,13 +169,11 @@ async function main() {
     console.error('❌ API key sai hoặc hết hạn. Status:', probe.status);
     process.exit(1);
   }
-  const rec0 = probe.body?.data?.[0];
-  console.log('✅ API OK — sample new_ward:', JSON.stringify(rec0?.new_ward || null));
-  console.log();
+  console.log('✅ API OK\n');
 
-  const provCodeMap = await loadProvinceCodeMap();
-  const wards       = await loadOldWards();
-  const mapping     = await buildMapping(wards, provCodeMap);
+  const newProvCodeMap = await loadNewProvinceCodeMap();
+  const oldProvinces   = await loadOldProvinces();
+  const mapping        = await buildMapping(oldProvinces, newProvCodeMap);
 
   // Write
   const count = Object.keys(mapping).length;
@@ -234,18 +181,8 @@ async function main() {
   fs.writeFileSync(OUT_FILE, json, 'utf8');
 
   console.log('─'.repeat(50));
-  console.log(`✅ ${count.toLocaleString('vi')} entries → ${OUT_FILE}`);
-  console.log(`   Size: ${(json.length / 1024).toFixed(0)} KB\n`);
-
-  // Show sample with multiple sources
-  const multi = Object.entries(mapping).filter(([,v]) => v.sources.length > 1).slice(0, 5);
-  if (multi.length) {
-    console.log('Sample (gộp nhiều xã cũ):');
-    multi.forEach(([k, v]) => {
-      console.log(`  ${v.ward_new} (${v.province_new})`);
-      console.log(`    ← ${v.sources.map(s => s.ward + '/' + s.district).join(' | ')}`);
-    });
-  }
+  console.log(`✅ ${count} entries → ${OUT_FILE}`);
+  console.log(`   Size: ${(json.length / 1024).toFixed(1)} KB\n`);
 }
 
 main().catch(e => { console.error('\n❌ Fatal:', e.message); process.exit(1); });

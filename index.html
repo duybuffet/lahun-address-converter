@@ -311,8 +311,8 @@
 
   <!-- HERO -->
   <div class="hero">
-    <h1>Chuyển đổi địa chỉ <span>mới → cũ</span><br>sau sáp nhập hành chính 2025</h1>
-    <p>Upload file Excel có cột dealer / address / province → tự động thêm cột <span class="mono" style="color:var(--accent2)">old_address</span> và export lại</p>
+    <h1>Chuyển đổi tỉnh/thành <span>cũ → mới</span><br>sau sáp nhập hành chính 2025</h1>
+    <p>Upload file Excel → dùng cột 1 (Dealer) và cột 2 (Address) → tự trích tỉnh cũ từ Address, thêm cột 3 <span class="mono" style="color:var(--accent2)">new_province</span></p>
   </div>
 
   <!-- STEPS -->
@@ -327,8 +327,7 @@
   <div class="card" id="card1">
     <div class="card-title">📂 Upload file <div class="line"></div></div>
     <div class="alert alert-info">
-      ℹ️ File Excel cần có các cột: <strong>dealer</strong>, <strong>address</strong>, <strong>province</strong>.<br>
-      Tool đọc dòng đầu (header) để tự nhận diện tên cột (không phân biệt hoa thường).
+      ℹ️ Tool sử dụng <strong>cột 1</strong> (Dealer) và <strong>cột 2</strong> (Address), bất kể tên cột. Tỉnh mới sẽ được thêm vào cột 3.
     </div>
     <div class="drop-zone" id="dropZone">
       <span class="drop-icon">📊</span>
@@ -428,170 +427,157 @@
 // ================================================================
 // STATE
 // ================================================================
-let sheetRows   = [];   // raw rows from Excel [{dealer, address, province, ...}]
-let mapping     = null; // {normalizedKey: {sources:[...], ...}}
-let processed   = [];   // final rows with old_address
+let sheetRows   = [];
+let mapping     = null; // { normalizedProvName: { province_old, province_new } }
+let processed   = [];
 let currentFile = null;
 
-// Column name aliases (flexible detection)
-const COL_ALIASES = {
-  dealer:   ['dealer', 'Dealer', 'DEALER', 'tên', 'cửa hàng', 'store'],
-  address:  ['address', 'Address', 'ADDRESS', 'địa chỉ', 'diachi', 'addr'],
-  province: ['province', 'Province', 'PROVINCE', 'tỉnh', 'thành phố', 'tinh', 'city'],
-};
+// Always use first 2 columns: col[0] = Dealer, col[1] = Address
 
 // ================================================================
-// UTILITY: NORMALIZE VIETNAMESE TEXT
+// NORMALIZE VIETNAMESE TEXT
 // ================================================================
 function normalize(str) {
   if (!str) return '';
-  return String(str)
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ')
+  return String(str).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function normalizeProv(str) {
+  if (!str) return '';
+  return normalize(str)
+    .replace(/^(tinh|thanh pho|tp\.?|t\.p\.?|city)\s+/, '')
+    .replace(/\s*(viet\s*nam|vn)$/i, '')
     .trim();
 }
 
-function normalizeProvince(str) {
-  if (!str) return '';
-  const prefixes = /^(tinh|thanh pho|tp\.?|t\.p\.?|city)\s+/i;
-  return normalize(str).replace(prefixes, '').trim();
-}
-
 // ================================================================
-// UTILITY: DETECT COLUMN NAMES
+// GET COLUMN KEYS: always 1st = dealer, 2nd = address
 // ================================================================
-function detectCols(row) {
+function getColKeys(row) {
   const keys = Object.keys(row);
-  const found = {};
-  for (const [target, aliases] of Object.entries(COL_ALIASES)) {
-    for (const k of keys) {
-      if (aliases.some(a => a.toLowerCase() === k.toLowerCase())) {
-        found[target] = k; break;
-      }
-    }
-  }
-  return found;
+  return { dealer: keys[0] || '', address: keys[1] || '' };
 }
 
 // ================================================================
-// UTILITY: PARSE WARD FROM FREE-TEXT ADDRESS
+// LOOKUP PROVINCE from address text
 // ================================================================
-function parseWard(address) {
-  if (!address) return null;
-  const str = String(address);
+function lookupProvince(address) {
+  if (!mapping || !address) return null;
+  const addr = String(address);
 
-  const patterns = [
-    { re: /\bph(?:ường|u\w*ng)\s+([^,\n]+?)(?=\s*,|\s+qu[ậa]n|\s+huy[ệe]n|\s+th[àa]nh\s*ph[ốo]|\s+t[ỉi]nh|\s+vi[ệe]t\s*nam|$)/i, type: 'Phường' },
-    { re: /\bth[ịi]\s+tr[ấa]n\s+([^,\n]+?)(?=\s*,|\s+qu[ậa]n|\s+huy[ệe]n|\s+th[àa]nh\s*ph[ốo]|\s+t[ỉi]nh|$)/i,               type: 'Thị trấn' },
-    { re: /\bx[ãa]\s+([^,\n]+?)(?=\s*,|\s+qu[ậa]n|\s+huy[ệe]n|\s+th[àa]nh\s*ph[ốo]|\s+t[ỉi]nh|$)/i,                           type: 'Xã' },
-  ];
+  // 0) Handle "TP HCM" / "TP.HCM" / "TPHCM" abbreviation
+  if (/\btp\.?\s*h\.?c\.?m\.?\b/i.test(addr)) return mapping['ho chi minh'];
 
-  for (const { re, type } of patterns) {
-    const m = str.match(re);
-    if (m) {
-      let name = m[1]
-        .replace(/,.*$/, '')
-        .replace(/\s+(quận|huyện|thành\s*phố|tỉnh|việt\s*nam)\b.*/i, '')
-        .trim();
-      if (name && name.length > 1 && name.length < 60) {
-        return { name, type };
-      }
-    }
+  // 1) Try explicit prefix: "Tỉnh X", "Thành phố X", "TP X", "TP. X"
+  const prefixRe = /(?:tỉnh|thành\s*phố|tp\.?\s*)\s*([^,\n]+)/gi;
+  let m;
+  while ((m = prefixRe.exec(addr)) !== null) {
+    const candidate = normalizeProv(m[1].replace(/,.*$/, '').trim());
+    if (candidate && mapping[candidate]) return mapping[candidate];
   }
+
+  // 2) Match known province names anywhere in address (longest match first)
+  const keys = Object.keys(mapping).sort((a, b) => b.length - a.length);
+  const addrNorm = normalize(addr);
+  for (const key of keys) {
+    if (addrNorm.includes(key)) return mapping[key];
+  }
+
   return null;
 }
 
 // ================================================================
-// UTILITY: EXTRACT STREET PART (before ward)
+// MAPPING DATA (sample — full data loaded from mapping.json)
 // ================================================================
-function extractStreet(address, ward) {
-  if (!ward) return String(address || '').trim();
-  const escapedName = ward.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(
-    `\\b(?:phường|thị trấn|xã)\\s+${escapedName}`,
-    'i'
-  );
-  const m = String(address).match(re);
-  if (!m) return String(address).trim();
-  const idx = String(address).indexOf(m[0]);
-  if (idx <= 0) return '';
-  return String(address).slice(0, idx).replace(/[,\s]+$/, '').trim();
-}
-
-// ================================================================
-// CORE: LOOKUP OLD ADDRESS
-// ================================================================
-function lookupOld(address, province, cols) {
-  if (!mapping) return null;
-
-  const ward = parseWard(address);
-  if (!ward) return { error: 'Không nhận diện được phường/xã' };
-
-  const wardNorm = normalize(ward.name);
-  const provNorm = normalizeProvince(province);
-
-  // Try: wardNorm|provNorm
-  let entry = mapping[`${wardNorm}|${provNorm}`];
-
-  // Fallback: wardNorm only (if province ambiguous)
-  if (!entry) entry = mapping[wardNorm];
-
-  if (!entry) return { error: `Không tìm thấy: "${ward.type} ${ward.name}" / "${province}"` };
-
-  const primary = entry.sources[0];
-  const street  = extractStreet(address, ward);
-
-  const wardPart     = `${primary.ward_type} ${primary.ward}`;
-  const districtPart = primary.district ? `, ${primary.district}` : '';
-  const provPart     = primary.province;
-
-  const oldAddress = street
-    ? `${street}, ${wardPart}${districtPart}, ${provPart}`
-    : `${wardPart}${districtPart}, ${provPart}`;
-
-  return {
-    old_address: oldAddress,
-    sources: entry.sources.length,
-    ward_old: `${primary.ward_type} ${primary.ward}`,
-    district_old: primary.district || '',
-    province_old: primary.province,
-  };
-}
-
-// ================================================================
-// MAPPING DATA — nhúng trực tiếp, không cần fetch (hoạt động với file://)
-// Khi có full data từ generate-mapping.js, thay thế object MAPPING_DATA bên dưới
-// ================================================================
-const MAPPING_DATA = {"tran nguyen han|hai phong":{"ward_new":"Trần Nguyên Hãn","type_new":"Phường","province_new":"Thành phố Hải Phòng","sources":[{"ward":"Trần Nguyên Hãn","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Hồ Nam","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Dư Hàng","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"}]},"an bien|hai phong":{"ward_new":"An Biên","type_new":"Phường","province_new":"Thành phố Hải Phòng","sources":[{"ward":"An Biên","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"An Dương","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Lam Sơn","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Cát Dài","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Vĩnh Niệm","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"}]},"le chan|hai phong":{"ward_new":"Lê Chân","type_new":"Phường","province_new":"Thành phố Hải Phòng","sources":[{"ward":"Hàng Kênh","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Dư Hàng Kênh","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Kênh Dương","ward_type":"Phường","district":"Quận Lê Chân","province":"Thành phố Hải Phòng"},{"ward":"Cầu Đất","ward_type":"Phường","district":"Quận Ngô Quyền","province":"Thành phố Hải Phòng"},{"ward":"Lạch Tray","ward_type":"Phường","district":"Quận Ngô Quyền","province":"Thành phố Hải Phòng"}]},"ba dinh|ha noi":{"ward_new":"Ba Đình","type_new":"Phường","province_new":"Thành phố Hà Nội","sources":[{"ward":"Phúc Xá","ward_type":"Phường","district":"Quận Ba Đình","province":"Thành phố Hà Nội"},{"ward":"Trúc Bạch","ward_type":"Phường","district":"Quận Ba Đình","province":"Thành phố Hà Nội"},{"ward":"Nguyễn Trung Trực","ward_type":"Phường","district":"Quận Ba Đình","province":"Thành phố Hà Nội"},{"ward":"Quán Thánh","ward_type":"Phường","district":"Quận Ba Đình","province":"Thành phố Hà Nội"}]},"hoan kiem|ha noi":{"ward_new":"Hoàn Kiếm","type_new":"Phường","province_new":"Thành phố Hà Nội","sources":[{"ward":"Hàng Bạc","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"},{"ward":"Hàng Buồm","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"},{"ward":"Hàng Đào","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"},{"ward":"Hàng Gai","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"},{"ward":"Hồ Hoàn Kiếm","ward_type":"Phường","district":"Quận Hoàn Kiếm","province":"Thành phố Hà Nội"}]},"ben nghe|ho chi minh":{"ward_new":"Bến Nghé","type_new":"Phường","province_new":"Thành phố Hồ Chí Minh","sources":[{"ward":"Bến Nghé","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"},{"ward":"Bến Thành","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"},{"ward":"Nguyễn Thái Bình","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"}]},"pham ngu lao|ho chi minh":{"ward_new":"Phạm Ngũ Lão","type_new":"Phường","province_new":"Thành phố Hồ Chí Minh","sources":[{"ward":"Phạm Ngũ Lão","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"},{"ward":"Cô Giang","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"},{"ward":"Cầu Kho","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh"}]},"da nang|da nang":{"ward_new":"Đà Nẵng","type_new":"Phường","province_new":"Thành phố Đà Nẵng","sources":[{"ward":"Hải Châu 1","ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng"},{"ward":"Hải Châu 2","ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng"},{"ward":"Thạch Thang","ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng"}]}};
+// Full 63 old provinces → 34 new provinces (Nghị quyết 202/2025/QH15)
+// Data from tinhthanhpho.com merge-history API
+const MAPPING_DATA = {
+  "ha noi":{"province_old":"Thành phố Hà Nội","province_new":"Hà Nội"},
+  "ha giang":{"province_old":"Tỉnh Hà Giang","province_new":"Tuyên Quang"},
+  "cao bang":{"province_old":"Tỉnh Cao Bằng","province_new":"Cao Bằng"},
+  "bac kan":{"province_old":"Tỉnh Bắc Kạn","province_new":"Thái Nguyên"},
+  "tuyen quang":{"province_old":"Tỉnh Tuyên Quang","province_new":"Tuyên Quang"},
+  "lao cai":{"province_old":"Tỉnh Lào Cai","province_new":"Yên Bái"},
+  "dien bien":{"province_old":"Tỉnh Điện Biên","province_new":"Điện Biên"},
+  "lai chau":{"province_old":"Tỉnh Lai Châu","province_new":"Lai Châu"},
+  "son la":{"province_old":"Tỉnh Sơn La","province_new":"Sơn La"},
+  "yen bai":{"province_old":"Tỉnh Yên Bái","province_new":"Yên Bái"},
+  "hoa binh":{"province_old":"Tỉnh Hoà Bình","province_new":"Phú Thọ"},
+  "thai nguyen":{"province_old":"Tỉnh Thái Nguyên","province_new":"Thái Nguyên"},
+  "lang son":{"province_old":"Tỉnh Lạng Sơn","province_new":"Lạng Sơn"},
+  "quang ninh":{"province_old":"Tỉnh Quảng Ninh","province_new":"Quảng Ninh"},
+  "bac giang":{"province_old":"Tỉnh Bắc Giang","province_new":"Bắc Giang"},
+  "phu tho":{"province_old":"Tỉnh Phú Thọ","province_new":"Phú Thọ"},
+  "vinh phuc":{"province_old":"Tỉnh Vĩnh Phúc","province_new":"Phú Thọ"},
+  "bac ninh":{"province_old":"Tỉnh Bắc Ninh","province_new":"Bắc Giang"},
+  "hai duong":{"province_old":"Tỉnh Hải Dương","province_new":"Hải Phòng"},
+  "hai phong":{"province_old":"Thành phố Hải Phòng","province_new":"Hải Phòng"},
+  "hung yen":{"province_old":"Tỉnh Hưng Yên","province_new":"Hưng Yên"},
+  "thai binh":{"province_old":"Tỉnh Thái Bình","province_new":"Hưng Yên"},
+  "ha nam":{"province_old":"Tỉnh Hà Nam","province_new":"Ninh Bình"},
+  "nam dinh":{"province_old":"Tỉnh Nam Định","province_new":"Ninh Bình"},
+  "ninh binh":{"province_old":"Tỉnh Ninh Bình","province_new":"Ninh Bình"},
+  "thanh hoa":{"province_old":"Tỉnh Thanh Hóa","province_new":"Thanh Hóa"},
+  "nghe an":{"province_old":"Tỉnh Nghệ An","province_new":"Nghệ An"},
+  "ha tinh":{"province_old":"Tỉnh Hà Tĩnh","province_new":"Hà Tĩnh"},
+  "quang binh":{"province_old":"Tỉnh Quảng Bình","province_new":"Quảng Bình"},
+  "quang tri":{"province_old":"Tỉnh Quảng Trị","province_new":"Quảng Bình"},
+  "hue":{"province_old":"Thành phố Huế","province_new":"Thừa Thiên Huế"},
+  "thua thien hue":{"province_old":"Tỉnh Thừa Thiên Huế","province_new":"Thừa Thiên Huế"},
+  "da nang":{"province_old":"Thành phố Đà Nẵng","province_new":"Đà Nẵng"},
+  "quang nam":{"province_old":"Tỉnh Quảng Nam","province_new":"Đà Nẵng"},
+  "quang ngai":{"province_old":"Tỉnh Quảng Ngãi","province_new":"Quảng Ngãi"},
+  "binh dinh":{"province_old":"Tỉnh Bình Định","province_new":"Bình Định"},
+  "phu yen":{"province_old":"Tỉnh Phú Yên","province_new":"Đắk Lắk"},
+  "khanh hoa":{"province_old":"Tỉnh Khánh Hòa","province_new":"Khánh Hòa"},
+  "ninh thuan":{"province_old":"Tỉnh Ninh Thuận","province_new":"Khánh Hòa"},
+  "binh thuan":{"province_old":"Tỉnh Bình Thuận","province_new":"Lâm Đồng"},
+  "kon tum":{"province_old":"Tỉnh Kon Tum","province_new":"Quảng Ngãi"},
+  "gia lai":{"province_old":"Tỉnh Gia Lai","province_new":"Bình Định"},
+  "dak lak":{"province_old":"Tỉnh Đắk Lắk","province_new":"Đắk Lắk"},
+  "dak nong":{"province_old":"Tỉnh Đắk Nông","province_new":"Lâm Đồng"},
+  "lam dong":{"province_old":"Tỉnh Lâm Đồng","province_new":"Lâm Đồng"},
+  "binh phuoc":{"province_old":"Tỉnh Bình Phước","province_new":"Đồng Nai"},
+  "tay ninh":{"province_old":"Tỉnh Tây Ninh","province_new":"Long An"},
+  "binh duong":{"province_old":"Tỉnh Bình Dương","province_new":"Hồ Chí Minh"},
+  "dong nai":{"province_old":"Tỉnh Đồng Nai","province_new":"Đồng Nai"},
+  "ba ria vung tau":{"province_old":"Tỉnh Bà Rịa - Vũng Tàu","province_new":"Hồ Chí Minh"},
+  "ho chi minh":{"province_old":"Thành phố Hồ Chí Minh","province_new":"Hồ Chí Minh"},
+  "long an":{"province_old":"Tỉnh Long An","province_new":"Long An"},
+  "tien giang":{"province_old":"Tỉnh Tiền Giang","province_new":"Tiền Giang"},
+  "ben tre":{"province_old":"Tỉnh Bến Tre","province_new":"Vĩnh Long"},
+  "tra vinh":{"province_old":"Tỉnh Trà Vinh","province_new":"Vĩnh Long"},
+  "vinh long":{"province_old":"Tỉnh Vĩnh Long","province_new":"Vĩnh Long"},
+  "dong thap":{"province_old":"Tỉnh Đồng Tháp","province_new":"Tiền Giang"},
+  "an giang":{"province_old":"Tỉnh An Giang","province_new":"Kiên Giang"},
+  "kien giang":{"province_old":"Tỉnh Kiên Giang","province_new":"Kiên Giang"},
+  "can tho":{"province_old":"Thành phố Cần Thơ","province_new":"Cần Thơ"},
+  "hau giang":{"province_old":"Tỉnh Hậu Giang","province_new":"Cần Thơ"},
+  "soc trang":{"province_old":"Tỉnh Sóc Trăng","province_new":"Cần Thơ"},
+  "bac lieu":{"province_old":"Tỉnh Bạc Liêu","province_new":"Cà Mau"},
+  "ca mau":{"province_old":"Tỉnh Cà Mau","province_new":"Cà Mau"}
+};
 
 async function loadMapping() {
-  setMappingStatus('loading', 'Đang khởi tạo dữ liệu...');
-
-  // 1) Dùng data nhúng sẵn trước
+  setMappingStatus('loading', 'Đang tải dữ liệu mapping...');
   mapping = { ...MAPPING_DATA };
 
-  // 2) Thử load thêm từ mapping.json (chỉ hoạt động khi chạy qua HTTP server / GitHub Pages)
   try {
     const res = await fetch('./data/mapping.json');
     if (res.ok) {
       const ext = await res.json();
-      // Merge — external file thắng nếu trùng key
       mapping = { ...mapping, ...ext };
     }
-  } catch (_) {
-    // Không có server / không có file → dùng data nhúng, không báo lỗi
-  }
+  } catch (_) {}
 
-  const count = Object.keys(mapping).filter(k => k !== '_meta').length;
-  const isSample = count < 50;
+  const count = Object.keys(mapping).length;
+  const isSample = count < 10;
   setMappingStatus('ok',
     isSample
-      ? `⚠️ Đang dùng data SAMPLE (${count} phường/xã). Chạy generate-mapping.js để có full data toàn quốc.`
-      : `✅ Đã tải ${count.toLocaleString('vi')} đơn vị hành chính`
+      ? `⚠️ Đang dùng data SAMPLE (${count} tỉnh). Chạy generate-mapping.js để có full data.`
+      : `✅ Đã tải ${count} tỉnh/thành`
   );
   document.getElementById('convertBtn').disabled = false;
 }
@@ -627,11 +613,7 @@ function handleFile(file) {
       const wb = XLSX.read(ev.target.result, { type: 'binary' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       sheetRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-      if (sheetRows.length === 0) {
-        alert('File không có dữ liệu!'); return;
-      }
-
+      if (sheetRows.length === 0) { alert('File không có dữ liệu!'); return; }
       showPreview(file);
       setStep(2);
       show('card2');
@@ -649,32 +631,20 @@ function showPreview(file) {
   document.getElementById('fileMeta').textContent =
     `${sheetRows.length.toLocaleString('vi')} dòng · ${(file.size / 1024).toFixed(1)} KB`;
 
-  const detectedCols = detectCols(sheetRows[0]);
-  const allOk = detectedCols.dealer && detectedCols.address && detectedCols.province;
-
+  const colKeys = getColKeys(sheetRows[0]);
   const colCheckEl = document.getElementById('colCheck');
-  if (allOk) {
-    colCheckEl.className = 'alert alert-success';
-    colCheckEl.innerHTML =
-      `✅ Nhận diện cột: <strong>dealer</strong> = "${detectedCols.dealer}" · <strong>address</strong> = "${detectedCols.address}" · <strong>province</strong> = "${detectedCols.province}"`;
-  } else {
-    colCheckEl.className = 'alert alert-warn';
-    const missing = ['dealer','address','province'].filter(k => !detectedCols[k]);
-    colCheckEl.innerHTML =
-      `⚠️ Không tìm thấy cột: <strong>${missing.join(', ')}</strong>. Tool sẽ dùng cột đầu tiên làm fallback.`;
-  }
+  colCheckEl.className = 'alert alert-info';
+  colCheckEl.innerHTML =
+    `ℹ️ Cột 1 (Dealer): <strong>${colKeys.dealer}</strong> · Cột 2 (Address): <strong>${colKeys.address}</strong> → Tỉnh mới sẽ thêm vào cột 3`;
 
-  // Preview table (5 rows)
   const preview = sheetRows.slice(0, 5);
-  const cols = Object.keys(preview[0] || {});
+  const previewCols = [colKeys.dealer, colKeys.address];
   const table = document.getElementById('previewTable');
   table.innerHTML = `
-    <thead>
-      <tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>
-    </thead>
+    <thead><tr>${previewCols.map(c => `<th>${escHtml(c)}</th>`).join('')}</tr></thead>
     <tbody>
       ${preview.map(row => `
-        <tr>${cols.map(c => `<td title="${escHtml(String(row[c]))}">${escHtml(String(row[c]).slice(0, 60))}</td>`).join('')}</tr>
+        <tr>${previewCols.map(c => `<td title="${escHtml(String(row[c]))}">${escHtml(String(row[c]).slice(0, 60))}</td>`).join('')}</tr>
       `).join('')}
     </tbody>
   `;
@@ -685,42 +655,39 @@ function showPreview(file) {
 // ================================================================
 async function startConvert() {
   if (!mapping) return;
-
   document.getElementById('convertBtn').disabled = true;
   show('progressWrap');
   setStep(3);
   processed = [];
 
-  const detectedCols = detectCols(sheetRows[0]);
-  const addrKey = detectedCols.address  || Object.keys(sheetRows[0])[1];
-  const provKey = detectedCols.province || Object.keys(sheetRows[0])[2];
+  const cols = getColKeys(sheetRows[0]);
 
   let ok = 0, fail = 0;
   const total = sheetRows.length;
 
   for (let i = 0; i < total; i++) {
     const row = sheetRows[i];
-    const addr = String(row[addrKey] || '');
-    const prov = String(row[provKey] || '');
+    const addr = String(row[cols.address] || '');
 
-    const result = lookupOld(addr, prov);
+    const entry = lookupProvince(addr);
 
-    let oldAddress = '', status = '';
-    if (!result) {
-      oldAddress = ''; status = '❌ mapping chưa tải';
-      fail++;
-    } else if (result.error) {
-      oldAddress = ''; status = `❌ ${result.error}`;
+    let newProvince = '', status = '';
+    if (!entry) {
+      status = '❌ Không nhận diện được tỉnh/thành';
       fail++;
     } else {
-      oldAddress = result.old_address;
-      status = result.sources > 1 ? `⚠️ ${result.sources} nguồn gộp` : '✅';
+      newProvince = entry.province_new;
+      status = '✅';
       ok++;
     }
 
-    processed.push({ ...row, old_address: oldAddress, _status: status });
+    const out = {};
+    out[cols.dealer]  = row[cols.dealer];
+    out[cols.address] = row[cols.address];
+    out['new_province'] = newProvince;
+    out['_status'] = status;
+    processed.push(out);
 
-    // Update progress every 50 rows
     if (i % 50 === 0 || i === total - 1) {
       const pct = Math.round(((i + 1) / total) * 100);
       document.getElementById('progressFill').style.width = pct + '%';
@@ -741,31 +708,28 @@ function showResult(total, ok, fail) {
   if (fail > 0) {
     const fa = document.getElementById('failAlert');
     fa.classList.remove('hidden');
-    fa.textContent = `⚠️ ${fail} dòng không convert được — thường do ward name không khớp với mapping.json hoặc địa chỉ không có phường/xã rõ ràng.`;
+    fa.textContent = `⚠️ ${fail} dòng không tìm được tỉnh/thành trong địa chỉ.`;
   }
 
-  // Result table (10 rows preview)
   const preview = processed.slice(0, 10);
-  const baseCols = Object.keys(sheetRows[0] || {});
-  const allCols  = [...baseCols, 'old_address', '_status'];
+  const cols = getColKeys(sheetRows[0]);
+  const displayCols = [cols.dealer, cols.address];
 
   const table = document.getElementById('resultTable');
   table.innerHTML = `
     <thead>
       <tr>
-        ${baseCols.map(c => `<th>${escHtml(c)}</th>`).join('')}
-        <th class="col-new">old_address</th>
+        ${displayCols.map(c => `<th>${escHtml(c)}</th>`).join('')}
+        <th class="col-new">new_province</th>
         <th class="col-new">status</th>
       </tr>
     </thead>
     <tbody>
       ${preview.map(row => {
-        const statusClass = row._status.startsWith('✅') ? 'cell-success'
-                          : row._status.startsWith('⚠️') ? 'cell-warn'
-                          : 'cell-error';
+        const statusClass = row._status.startsWith('✅') ? 'cell-success' : 'cell-error';
         return `<tr>
-          ${baseCols.map(c => `<td title="${escHtml(String(row[c]))}">${escHtml(String(row[c]).slice(0,50))}</td>`).join('')}
-          <td class="cell-new" title="${escHtml(row.old_address)}">${escHtml((row.old_address||'').slice(0,60))}</td>
+          ${displayCols.map(c => `<td title="${escHtml(String(row[c]))}">${escHtml(String(row[c]).slice(0,50))}</td>`).join('')}
+          <td class="cell-new">${escHtml(row.new_province)}</td>
           <td class="${statusClass}">${escHtml(row._status)}</td>
         </tr>`;
       }).join('')}
@@ -781,15 +745,12 @@ function showResult(total, ok, fail) {
 // EXPORT EXCEL
 // ================================================================
 function exportExcel() {
-  // Strip internal _status → rename to convert_status for export
   const exportRows = processed.map(r => {
     const { _status, ...rest } = r;
     return { ...rest, convert_status: _status };
   });
 
   const ws = XLSX.utils.json_to_sheet(exportRows);
-
-  // Auto-width columns
   const colWidths = Object.keys(exportRows[0] || {}).map(k => ({
     wch: Math.max(k.length, ...exportRows.slice(0,100).map(r => String(r[k]||'').length))
   }));

@@ -1,103 +1,254 @@
 {
-  "_meta": {
-    "note": "File này là SAMPLE với một số tỉnh/phường để demo. Chạy scripts/generate-mapping.js để tạo full dataset toàn quốc.",
-    "source": "Nghị quyết 202/2025/QH15 · 76/2025/UBTVQH15 · 1669/NQ-UBTVQH15",
-    "generated": "2025-07-01",
-    "total_entries": "sample only"
+  "ha noi": {
+    "province_old": "Thành phố Hà Nội",
+    "province_new": "Hà Nội"
   },
-
-  "tran nguyen han|hai phong": {
-    "ward_new": "Trần Nguyên Hãn",
-    "type_new": "Phường",
-    "province_new": "Thành phố Hải Phòng",
-    "sources": [
-      { "ward": "Trần Nguyên Hãn", "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
-      { "ward": "Hồ Nam",          "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
-      { "ward": "Dư Hàng",         "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" }
-    ]
+  "ha giang": {
+    "province_old": "Tỉnh Hà Giang",
+    "province_new": "Tuyên Quang"
   },
-
-  "an bien|hai phong": {
-    "ward_new": "An Biên",
-    "type_new": "Phường",
-    "province_new": "Thành phố Hải Phòng",
-    "sources": [
-      { "ward": "An Biên",   "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
-      { "ward": "An Dương",  "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
-      { "ward": "Lam Sơn",   "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
-      { "ward": "Cát Dài",   "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" },
-      { "ward": "Vĩnh Niệm", "ward_type": "Phường", "district": "Quận Lê Chân", "province": "Thành phố Hải Phòng" }
-    ]
+  "cao bang": {
+    "province_old": "Tỉnh Cao Bằng",
+    "province_new": "Cao Bằng"
   },
-
-  "le chan|hai phong": {
-    "ward_new": "Lê Chân",
-    "type_new": "Phường",
-    "province_new": "Thành phố Hải Phòng",
-    "sources": [
-      { "ward": "Hàng Kênh",   "ward_type": "Phường", "district": "Quận Lê Chân",  "province": "Thành phố Hải Phòng" },
-      { "ward": "Dư Hàng Kênh","ward_type": "Phường", "district": "Quận Lê Chân",  "province": "Thành phố Hải Phòng" },
-      { "ward": "Kênh Dương",  "ward_type": "Phường", "district": "Quận Lê Chân",  "province": "Thành phố Hải Phòng" },
-      { "ward": "Cầu Đất",     "ward_type": "Phường", "district": "Quận Ngô Quyền","province": "Thành phố Hải Phòng" },
-      { "ward": "Lạch Tray",   "ward_type": "Phường", "district": "Quận Ngô Quyền","province": "Thành phố Hải Phòng" }
-    ]
+  "bac kan": {
+    "province_old": "Tỉnh Bắc Kạn",
+    "province_new": "Thái Nguyên"
   },
-
-  "ba dinh|ha noi": {
-    "ward_new": "Ba Đình",
-    "type_new": "Phường",
-    "province_new": "Thành phố Hà Nội",
-    "sources": [
-      { "ward": "Phúc Xá",          "ward_type": "Phường", "district": "Quận Ba Đình", "province": "Thành phố Hà Nội" },
-      { "ward": "Trúc Bạch",        "ward_type": "Phường", "district": "Quận Ba Đình", "province": "Thành phố Hà Nội" },
-      { "ward": "Nguyễn Trung Trực","ward_type": "Phường", "district": "Quận Ba Đình", "province": "Thành phố Hà Nội" },
-      { "ward": "Quán Thánh",       "ward_type": "Phường", "district": "Quận Ba Đình", "province": "Thành phố Hà Nội" }
-    ]
+  "tuyen quang": {
+    "province_old": "Tỉnh Tuyên Quang",
+    "province_new": "Tuyên Quang"
   },
-
-  "hoan kiem|ha noi": {
-    "ward_new": "Hoàn Kiếm",
-    "type_new": "Phường",
-    "province_new": "Thành phố Hà Nội",
-    "sources": [
-      { "ward": "Hàng Bạc",  "ward_type": "Phường", "district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" },
-      { "ward": "Hàng Buồm", "ward_type": "Phường", "district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" },
-      { "ward": "Hàng Đào",  "ward_type": "Phường", "district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" },
-      { "ward": "Hàng Gai",  "ward_type": "Phường", "district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" },
-      { "ward": "Hồ Hoàn Kiếm","ward_type": "Phường","district": "Quận Hoàn Kiếm", "province": "Thành phố Hà Nội" }
-    ]
+  "lao cai": {
+    "province_old": "Tỉnh Lào Cai",
+    "province_new": "Yên Bái"
   },
-
-  "ben nghe|ho chi minh": {
-    "ward_new": "Bến Nghé",
-    "type_new": "Phường",
-    "province_new": "Thành phố Hồ Chí Minh",
-    "sources": [
-      { "ward": "Bến Nghé",  "ward_type": "Phường", "district": "Quận 1", "province": "Thành phố Hồ Chí Minh" },
-      { "ward": "Bến Thành", "ward_type": "Phường", "district": "Quận 1", "province": "Thành phố Hồ Chí Minh" },
-      { "ward": "Nguyễn Thái Bình","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh" }
-    ]
+  "dien bien": {
+    "province_old": "Tỉnh Điện Biên",
+    "province_new": "Điện Biên"
   },
-
-  "pham ngu lao|ho chi minh": {
-    "ward_new": "Phạm Ngũ Lão",
-    "type_new": "Phường",
-    "province_new": "Thành phố Hồ Chí Minh",
-    "sources": [
-      { "ward": "Phạm Ngũ Lão","ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh" },
-      { "ward": "Cô Giang",    "ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh" },
-      { "ward": "Cầu Kho",     "ward_type":"Phường","district":"Quận 1","province":"Thành phố Hồ Chí Minh" }
-    ]
+  "lai chau": {
+    "province_old": "Tỉnh Lai Châu",
+    "province_new": "Lai Châu"
   },
-
-  "da nang|da nang": {
-    "ward_new": "Đà Nẵng",
-    "type_new": "Phường",
-    "province_new": "Thành phố Đà Nẵng",
-    "sources": [
-      { "ward": "Hải Châu 1", "ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng" },
-      { "ward": "Hải Châu 2", "ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng" },
-      { "ward": "Thạch Thang","ward_type":"Phường","district":"Quận Hải Châu","province":"Thành phố Đà Nẵng" }
-    ]
+  "son la": {
+    "province_old": "Tỉnh Sơn La",
+    "province_new": "Sơn La"
+  },
+  "yen bai": {
+    "province_old": "Tỉnh Yên Bái",
+    "province_new": "Yên Bái"
+  },
+  "hoa binh": {
+    "province_old": "Tỉnh Hoà Bình",
+    "province_new": "Phú Thọ"
+  },
+  "thai nguyen": {
+    "province_old": "Tỉnh Thái Nguyên",
+    "province_new": "Thái Nguyên"
+  },
+  "lang son": {
+    "province_old": "Tỉnh Lạng Sơn",
+    "province_new": "Lạng Sơn"
+  },
+  "quang ninh": {
+    "province_old": "Tỉnh Quảng Ninh",
+    "province_new": "Quảng Ninh"
+  },
+  "bac giang": {
+    "province_old": "Tỉnh Bắc Giang",
+    "province_new": "Bắc Giang"
+  },
+  "phu tho": {
+    "province_old": "Tỉnh Phú Thọ",
+    "province_new": "Phú Thọ"
+  },
+  "vinh phuc": {
+    "province_old": "Tỉnh Vĩnh Phúc",
+    "province_new": "Phú Thọ"
+  },
+  "bac ninh": {
+    "province_old": "Tỉnh Bắc Ninh",
+    "province_new": "Bắc Giang"
+  },
+  "hai duong": {
+    "province_old": "Tỉnh Hải Dương",
+    "province_new": "Hải Phòng"
+  },
+  "hai phong": {
+    "province_old": "Thành phố Hải Phòng",
+    "province_new": "Hải Phòng"
+  },
+  "hung yen": {
+    "province_old": "Tỉnh Hưng Yên",
+    "province_new": "Hưng Yên"
+  },
+  "thai binh": {
+    "province_old": "Tỉnh Thái Bình",
+    "province_new": "Hưng Yên"
+  },
+  "ha nam": {
+    "province_old": "Tỉnh Hà Nam",
+    "province_new": "Ninh Bình"
+  },
+  "nam dinh": {
+    "province_old": "Tỉnh Nam Định",
+    "province_new": "Ninh Bình"
+  },
+  "ninh binh": {
+    "province_old": "Tỉnh Ninh Bình",
+    "province_new": "Ninh Bình"
+  },
+  "thanh hoa": {
+    "province_old": "Tỉnh Thanh Hóa",
+    "province_new": "Thanh Hóa"
+  },
+  "nghe an": {
+    "province_old": "Tỉnh Nghệ An",
+    "province_new": "Nghệ An"
+  },
+  "ha tinh": {
+    "province_old": "Tỉnh Hà Tĩnh",
+    "province_new": "Hà Tĩnh"
+  },
+  "quang binh": {
+    "province_old": "Tỉnh Quảng Bình",
+    "province_new": "Quảng Bình"
+  },
+  "quang tri": {
+    "province_old": "Tỉnh Quảng Trị",
+    "province_new": "Quảng Bình"
+  },
+  "hue": {
+    "province_old": "Thành phố Huế",
+    "province_new": "Thừa Thiên Huế"
+  },
+  "da nang": {
+    "province_old": "Thành phố Đà Nẵng",
+    "province_new": "Đà Nẵng"
+  },
+  "quang nam": {
+    "province_old": "Tỉnh Quảng Nam",
+    "province_new": "Đà Nẵng"
+  },
+  "quang ngai": {
+    "province_old": "Tỉnh Quảng Ngãi",
+    "province_new": "Quảng Ngãi"
+  },
+  "binh dinh": {
+    "province_old": "Tỉnh Bình Định",
+    "province_new": "Bình Định"
+  },
+  "phu yen": {
+    "province_old": "Tỉnh Phú Yên",
+    "province_new": "Đắk Lắk"
+  },
+  "khanh hoa": {
+    "province_old": "Tỉnh Khánh Hòa",
+    "province_new": "Khánh Hòa"
+  },
+  "ninh thuan": {
+    "province_old": "Tỉnh Ninh Thuận",
+    "province_new": "Khánh Hòa"
+  },
+  "binh thuan": {
+    "province_old": "Tỉnh Bình Thuận",
+    "province_new": "Lâm Đồng"
+  },
+  "kon tum": {
+    "province_old": "Tỉnh Kon Tum",
+    "province_new": "Quảng Ngãi"
+  },
+  "gia lai": {
+    "province_old": "Tỉnh Gia Lai",
+    "province_new": "Bình Định"
+  },
+  "dak lak": {
+    "province_old": "Tỉnh Đắk Lắk",
+    "province_new": "Đắk Lắk"
+  },
+  "dak nong": {
+    "province_old": "Tỉnh Đắk Nông",
+    "province_new": "Lâm Đồng"
+  },
+  "lam dong": {
+    "province_old": "Tỉnh Lâm Đồng",
+    "province_new": "Lâm Đồng"
+  },
+  "binh phuoc": {
+    "province_old": "Tỉnh Bình Phước",
+    "province_new": "Đồng Nai"
+  },
+  "tay ninh": {
+    "province_old": "Tỉnh Tây Ninh",
+    "province_new": "Long An"
+  },
+  "binh duong": {
+    "province_old": "Tỉnh Bình Dương",
+    "province_new": "Hồ Chí Minh"
+  },
+  "dong nai": {
+    "province_old": "Tỉnh Đồng Nai",
+    "province_new": "Đồng Nai"
+  },
+  "ba ria vung tau": {
+    "province_old": "Tỉnh Bà Rịa - Vũng Tàu",
+    "province_new": "Hồ Chí Minh"
+  },
+  "ho chi minh": {
+    "province_old": "Thành phố Hồ Chí Minh",
+    "province_new": "Hồ Chí Minh"
+  },
+  "long an": {
+    "province_old": "Tỉnh Long An",
+    "province_new": "Long An"
+  },
+  "tien giang": {
+    "province_old": "Tỉnh Tiền Giang",
+    "province_new": "Tiền Giang"
+  },
+  "ben tre": {
+    "province_old": "Tỉnh Bến Tre",
+    "province_new": "Vĩnh Long"
+  },
+  "tra vinh": {
+    "province_old": "Tỉnh Trà Vinh",
+    "province_new": "Vĩnh Long"
+  },
+  "vinh long": {
+    "province_old": "Tỉnh Vĩnh Long",
+    "province_new": "Vĩnh Long"
+  },
+  "dong thap": {
+    "province_old": "Tỉnh Đồng Tháp",
+    "province_new": "Tiền Giang"
+  },
+  "an giang": {
+    "province_old": "Tỉnh An Giang",
+    "province_new": "Kiên Giang"
+  },
+  "kien giang": {
+    "province_old": "Tỉnh Kiên Giang",
+    "province_new": "Kiên Giang"
+  },
+  "can tho": {
+    "province_old": "Thành phố Cần Thơ",
+    "province_new": "Cần Thơ"
+  },
+  "hau giang": {
+    "province_old": "Tỉnh Hậu Giang",
+    "province_new": "Cần Thơ"
+  },
+  "soc trang": {
+    "province_old": "Tỉnh Sóc Trăng",
+    "province_new": "Cần Thơ"
+  },
+  "bac lieu": {
+    "province_old": "Tỉnh Bạc Liêu",
+    "province_new": "Cà Mau"
+  },
+  "ca mau": {
+    "province_old": "Tỉnh Cà Mau",
+    "province_new": "Cà Mau"
   }
 }
